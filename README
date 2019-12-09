@@ -1,0 +1,1 @@
+This is a project using an Arduino Nano to completely disconnect lithium battery banks from everything should an over/under temp or over/under volt sitiuation occur. It will also control a heat pad for low temps and a cooling fan for high temps.
