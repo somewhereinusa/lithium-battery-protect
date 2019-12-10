@@ -127,7 +127,7 @@ void loop() {
   tft.print(sensors.getTempFByIndex(2));
 
    //==============================================================TFT battery temperature
-  if (temperature1 > 80)//should be 158
+  if (temperature1 >= 80)//should be 158
    
 
   {
@@ -137,20 +137,20 @@ void loop() {
     tft.print("  HIGH");
 
   }
-  else if (temperature1 > 65 && temperature1 < 80)// should be 34 and 158
+  else if (temperature1 >= 65 && temperature1 <= 80)// should be 34 and 158
   {
     tft.textSetCursor(350, 30);
     tft.textTransparent(RA8875_GREEN);
     tft.print("  OK");
   }
-  else if (temperature1 < 65) //should be 34
+  else if (temperature1 <= 65) //should be 34
   {
     tft.textSetCursor(350, 30);
     tft.textTransparent(RA8875_RED);
     tft.print("  LOW");
   }
   //==============================================================TFT Volts
-  if (vin > 2.3)//should be 15
+  if (vin >= 2.3)//should be 15
     
 
   {
@@ -160,42 +160,42 @@ void loop() {
     tft.print("  HIGH");
 
   }
-  else if (vin > 1 && vin < 2.3)// should be 11 and 15
+  else if (vin >= 1 && vin <= 2.3)// should be 11 and 15
   {
     tft.textSetCursor(350, 0);
     tft.textTransparent(RA8875_GREEN);
     tft.print("  OK");
   }
-  else if (vin < 1) //should be 11
+  else if (vin <= 1) //should be 11
   {
     tft.textSetCursor(350, 0);
     tft.textTransparent(RA8875_RED);
     tft.print("  LOW");
   }
   
-  if (temperature1 > 80 || vin > 2.3)//should be 158 and 15
+  if (temperature1 >= 80 || vin >= 2.3)//should be 158 and 15
   {
     relPin1Val =     LOW;
     Serial.println("Temp or Volts High");
   }
-  else if (temperature1 > 65 && temperature1 < 80 && vin > 1 && vin < 2.3)// should be 34 and 158 and 11 and 15
+  else if (temperature1 >= 65 && temperature1 <= 80 && vin >= 1 && vin <= 2.3)// should be 34 and 158 and 11 and 15
   {
     relPin1Val = HIGH;
     Serial.println ("Temp and Volts OK");
   }
-  else if (temperature1 < 65 || vin < 1) //should be 34 and 11
+  else if (temperature1 <= 65 || vin <= 1) //should be 34 and 11
   {
     relPin1Val = LOW;
     Serial.println ("Temp or Volts Low");
   }
 
   //Depending on the temperature switch======================== Rel 2 Cabin Temp turns on cooling fan
-  if (temperature2 > 80)//should be 90
+  if (temperature2 >= 80)//should be 90
   {
     relPin2Val = LOW;
     Serial.println("Cabin temp High");
   }
-  else if (temperature2 < 80)  //should be 35 and 90
+  else if (temperature2 <= 80)  //should be 35 and 90
   relPin2Val = HIGH;
     Serial.println ("Cabin temp OK");
   {
@@ -203,13 +203,13 @@ void loop() {
   }
   //=======================================================================Cabin Temp TFT
 
-  if (temperature2 > 80)//should be 90
+  if (temperature2 >= 80)//should be 90
   {
     tft.textSetCursor(350, 60);
     tft.textTransparent(RA8875_RED);
     tft.print("Fan ON");
   }
-  else if (temperature2 < 80)  //should be 35 and 90
+  else if (temperature2 <= 80)  //should be 35 and 90
   {
     tft.textSetCursor(350, 60);
     tft.textTransparent(RA8875_GREEN);
@@ -218,25 +218,25 @@ void loop() {
 
   }
   //Depending on the temperature switch=========================== Rel 3 Battery Heater turns on heating pads
-  if (temperature3 > 65)//should be 40
+  if (temperature3 >= 65)//should be 40
   {
     relPin3Val = HIGH;
     Serial.println("Heater Off");
   }
-  else if ( temperature3 < 65)  //should be  40
+  else if ( temperature3 <= 65)  //should be  40
   {
     relPin3Val = LOW ;
 
     Serial.println ("Heater On");
   }
   //===============================================================heat tft
-  if (temperature3 > 65)//should be 40
+  if (temperature3 >= 65)//should be 40
   {
    tft.textSetCursor(350, 90);
     tft.textTransparent(RA8875_GREEN);
     tft.print("Heat Off");
   }
-  else if (temperature3 < 65)  //should be  40
+  else if (temperature3 <= 65)  //should be  40
   {
   
  tft.textSetCursor(350, 90);
