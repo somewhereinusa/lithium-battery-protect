@@ -46,16 +46,6 @@ float CABIN_TEMP_VALUE = 0.0;
 float HEATER_TEMP_VALUE = 0.0;
 float OTHER_TEMP_VALUE = 0.0;
 
-// @kazetsukaimiko:
-// Honestly I wouldn't do this. Since these pins should be set as output, you
-// can read their state directly rather than having a variable mirror them.
-// Will provide an example in another branch.
-int MAIN_BATTERY_CUTOFF_PIN_VALUE;
-int CABIN_COOLING_FAN_PIN_VALUE;
-int BATTERY_HEATING_PAD_PIN_VALUE;
-int TBD_PIN_VALUE;
-
-
 #define RA8875_INT 8
 #define RA8875_CS 10
 #define RA8875_RESET 9
@@ -94,10 +84,25 @@ float R12 = 35000.0;
 float R22 = 7500.0;
 int value2 = 0;
 
+//=============================
+void setup() {
+  /*
+   * @kazetsukaimiko: Would up this value a little bit. If you rely on serial
+   * communication to give instructions or read values, Serial.setTimeout(50)
+   * can reduce the response delay.
+   */
+  Serial.begin(9600);
 
-/*
- * SETUP
- */
+  /*
+   * @kazetsukaimiko: Your code has sensors.begin(); twice. You may only have to
+   * do this once.
+   */
+  sensors.begin();
+
+  setupTFT();
+  sensors.begin();
+  setupPins();
+}
 
 void setupTFT() {
   if (!tft.begin(RA8875_480x272)) {
@@ -123,111 +128,86 @@ void setupPins() {
   pinMode(analogInput2, INPUT);
 }
 
-void setup() {
-  /*
-   * @kazetsukaimiko: Would up this value a little bit. If you rely on serial
-   * communication to give instructions or read values, Serial.setTimeout(50)
-   * can reduce the response delay.
-   */
-  Serial.begin(9600);
-
-  /*
-   * @kazetsukaimiko: Your code has sensors.begin(); twice. You may only have to
-   * do this once.
-   */
-  sensors.begin();
-
-  setupTFT();
-  sensors.begin();
-  setupPins();
-}
-
-/*
- * RUNTIME
- */
-
 void getTemperatures() {
   sensors.requestTemperatures();
   BATTERY_TEMP_VALUE = sensors.getTempFByIndex(BATTERY_TEMP_INDEX);
   CABIN_TEMP_VALUE = sensors.getTempFByIndex(CABIN_TEMP_INDEX);
   HEATER_TEMP_VALUE = sensors.getTempFByIndex(HEATER_TEMP_INDEX);
-  OTHER_TEMP_VALUE = sensors.getTempFByIndex(OTHER_TEMP_INDEX);
+  OTHER_TEMP_VALUE = sensors.getTempFByIndex(3);
 }
 
 void getVoltages() {
+  /*
+        +++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +                    NOTE                           +
+        +     Temp and voltage values used are for testing  +
+        +      final values are commented.                  +
+        +++++++++++++++++++++++++++++++++++++++++++++++++++++
+    */
+    //============================================================Volt sense 1
+    // read the value at analog input
     value = analogRead(analogInput1);
     vout = (value * 5.0) / 1024.0;
     vin = vout / (R2 / (R1 + R2));
 
+    //============================================================Volt sense 2
     value2 = analogRead(analogInput2);
     vout2 = (value2 * 5.0) / 1024.0;
     vin2 = vout2 / (R22 / (R12 + R22));
 }
 
-
-// @kazetsukaimiko: Possible to break this method into smaller ones!
-void sendMetricsToSerial() {
-  Serial.print ("Battery temp ");
-  Serial.print(BATTERY_TEMP_VALUE);
-  Serial.println ("F   ");
-
-  Serial.print ("Cabin temp ");
-  Serial.print(CABIN_TEMP_VALUE);
-  Serial.println ("F   ");
-
-  Serial.print ("Heater temp ");
-  Serial.print(HEATER_TEMP_VALUE);
-  Serial.println ("F   ");
-
-  Serial.print ("Other temp ");
-  Serial.print(OTHER_TEMP_VALUE);
-  Serial.println ("F   ");
-  Serial.println();
-
-  if (CABIN_COOLING_FAN_PIN_VALUE == LOW) {
-    Serial.println("Cabin temp High");
-  } else if (CABIN_COOLING_FAN_PIN_VALUE == HIGH) {
-    Serial.println ("Cabin temp OK");
-  }
-
-  if (MAIN_BATTERY_CUTOFF_PIN_VALUE == LOW) {
-    Serial.println("Battery OFF: ");
-    if (vin > BATTERY_HIGH_VOLTS) {
-      Serial.println("Volts high.");
-    } else if (vin < BATTERY_LOW_VOLTS) {
-      Serial.println("Volts low.");
-    }
-    if (BATTERY_TEMP_VALUE > BATTERY_HIGH_TEMP) {
-      Serial.println("Battery Temp High.");
-    } else if (BATTERY_TEMP_VALUE < BATTERY_LOW_TEMP) {
-      Serial.println("Battery Temp Low.");
-    }
-  } else {
-    Serial.println("Battery ON.");
-  }
-
-  if (BATTERY_HEATING_PAD_PIN_VALUE == HIGH) {
-    Serial.println("Heater Off");
-  } else if (BATTERY_HEATING_PAD_PIN_VALUE == LOW) {
-    Serial.println ("Heater On");
-  }
-
-
-  if (TBD_PIN_VALUE == HIGH) {
-    Serial.println("Relay 4 OFF (unused)");
-  } else {
-    Serial.println("Relay 4 ON (unused)");
-  }
-
-  Serial.print("Battery Volts1 ");
-  Serial.println(vin);
-
-  Serial.print("Battery Volts2 ");
-  Serial.println(vin2);
-
+boolean cabinIsTooHot() {
+  return (CABIN_TEMP_VALUE > CABIN_HIGH_TEMP);
 }
 
-// @kazetsukaimiko: Possible to break this method into smaller ones!
+boolean batteryIsTooHot() {
+  return (BATTERY_TEMP_VALUE > BATTERY_HIGH_TEMP);
+}
+
+boolean batteryIsTooCold() {
+  return (BATTERY_TEMP_VALUE < BATTERY_LOW_TEMP);
+}
+
+boolean batteryAtMaxVoltage() {
+  return (vin > BATTERY_HIGH_VOLTS);
+}
+
+boolean batteryAtMinVoltage() {
+  return (vin < BATTERY_LOW_VOLTS);
+}
+
+boolean batteryShouldBeCutOff() {
+  return batteryIsTooHot() || batteryIsTooCold() || batteryAtMaxVoltage() || batteryAtMinVoltage();
+}
+
+boolean heaterAtDesiredTemperature() {
+  return (HEATER_TEMP_VALUE >= HEATER_MAX_TEMP);
+}
+
+
+void sendMetricsToSerial() {
+  Serial.println("Battery temp " + BATTERY_TEMP_VALUE + "F   ");
+  Serial.println("Cabin temp " + CABIN_TEMP_VALUE + "F   ");
+  Serial.println("Heater temp " + HEATER_TEMP_VALUE + "F   ");
+  Serial.println("Other temp " + OTHER_TEMP_VALUE + "F   ");
+
+  Serial.println(cabinIsTooHot() ? "Cabin temp High" : "Cabin temp OK");
+
+  Serial.println(
+    !batteryShouldBeCutOff() ? "Battery ON." :
+    "Battery OFF: " +
+      batteryAtMaxVoltage()? "Volts High; " : batteryAtMinVoltage()? "Volts Low; " : "" +
+      batteryIsTooHot()? "Battery Temp High" : batteryIsTooCold()? "Battery Temp Low" : ""
+  );
+
+  Serial.println(heaterAtDesiredTemperature() ? "Heater Off" : "Heater On");
+
+  Serial.println((digitalRead(TBD_PIN) == HIGH) ? "Relay 4 OFF (unused)" : "Relay 4 ON (unused)");
+
+  Serial.println("Battery Volts1 " + vin);
+  Serial.println("Battery Volts2 " + vin2);
+}
+
 void sendMetricsToTFT() {
   tft.fillScreen(RA8875_BLACK);
 
@@ -235,60 +215,31 @@ void sendMetricsToTFT() {
   tft.textTransparent(RA8875_WHITE);
   tft.textSetCursor(10, 0);
   tft.textEnlarge(1);
-  tft.print ("Battery Volts ");
-  tft.print(vin);
+  tft.print ("Battery Volts " + vin);
   tft.textSetCursor(10, 30);
-  tft.print ("Battery Temp  ");
-  tft.print(sensors.getTempFByIndex(0));
+  tft.print ("Battery Temp  " + BATTERY_TEMP_VALUE);
   tft.textSetCursor(10, 60);
-  tft.print ("Room Temp     ");
-  tft.print(sensors.getTempFByIndex(1));
+  tft.print ("Room Temp     " + CABIN_TEMP_VALUE);
   tft.textSetCursor(10, 90);
-  tft.print ("Heater        ");
-  tft.print(sensors.getTempFByIndex(2));
+  tft.print ("Heater        " + HEATER_TEMP_VALUE);
 
   //==============================================================TFT battery temperature
   tft.textSetCursor(350, 30);
-  if (BATTERY_TEMP_VALUE > BATTERY_HIGH_TEMP) { //should be 158
-   tft.textTransparent(RA8875_RED);
-   tft.print("  HIGH");
- } else if (BATTERY_TEMP_VALUE > BATTERY_LOW_TEMP && BATTERY_TEMP_VALUE < BATTERY_HIGH_TEMP) { // should be 34 and 158
-   tft.textTransparent(RA8875_GREEN);
-   tft.print("  OK");
- } else if (BATTERY_TEMP_VALUE < BATTERY_LOW_TEMP) {//should be 34
-   tft.textTransparent(RA8875_RED);
-   tft.print("  LOW");
-  }
+  tft.textTransparent((batteryIsTooHot() || batteryIsTooCold())? RA8875_RED : RA8875_GREEN);
+  tft.print(batteryIsTooHot() ? "  HIGH" : batteryIsTooCold() ? "  LOW" : "  OK");
+
   //==============================================================TFT Volts
   tft.textSetCursor(350, 0);
-  if (vin > BATTERY_HIGH_VOLTS) {//should be 15
-   tft.textTransparent(RA8875_RED);
-   tft.print("  HIGH");
- } else if (vin > BATTERY_LOW_VOLTS && vin < BATTERY_HIGH_VOLTS) {// should be 11 and 15
-   tft.textTransparent(RA8875_GREEN);
-   tft.print("  OK");
- } else if (vin < BATTERY_LOW_VOLTS) { //should be 11
-   tft.textTransparent(RA8875_RED);
-   tft.print("  LOW");
-  }
+  tft.textTransparent((batteryAtMaxVoltage() || batteryAtMinVoltage()) ? RA8875_RED : RA8875_GREEN);
+  tft.print(batteryAtMaxVoltage() ? "  HIGH" : batteryAtMinVoltage() ? "  LOW" : "  OK");
 
   tft.textSetCursor(350, 60);
-  if (CABIN_COOLING_FAN_PIN_VALUE == LOW) {
-   tft.textTransparent(RA8875_RED);
-   tft.print("Fan ON");
-  } else if (CABIN_COOLING_FAN_PIN_VALUE == HIGH) {
-   tft.textTransparent(RA8875_GREEN);
-   tft.print ("Fan Off");
-  }
+  tft.textTransparent(cabinIsTooHot()? RA8875_RED : RA8875_GREEN);
+  tft.print(cabinIsTooHot()? "Fan ON" : "Fan Off");
 
   tft.textSetCursor(350, 90);
-  if (BATTERY_HEATING_PAD_PIN_VALUE == HIGH) {
-    tft.textTransparent(RA8875_GREEN);
-    tft.print("Heat Off");
-  } else if (BATTERY_HEATING_PAD_PIN_VALUE == LOW) {
-    tft.textTransparent(RA8875_RED);
-    tft.print ("Heat On");
-  }
+  tft.textTransparent(heaterAtDesiredTemperature()? RA8875_GREEN: RA8875_RED);
+  tft.print(heaterAtDesiredTemperature()? "Heat Off" : "Heat On");
 
   tft.textSetCursor(350, 120);
   tft.textTransparent(RA8875_RED);
@@ -300,70 +251,12 @@ void printMetrics() {
   sendMetricsToTFT();
 }
 
-/*
- * @kazetsukaimiko : Same logic bug. >=.
- */
-void setupCabinCoolingFan() {
-  if (CABIN_TEMP_VALUE > CABIN_HIGH_TEMP) {
-    CABIN_COOLING_FAN_PIN_VALUE = LOW;
-  } else {
-    CABIN_COOLING_FAN_PIN_VALUE = HIGH;
-  }
-}
-
-/*
- * @kazetsukaimiko: Previously there was a bug in this logic.
- * You were checking for x > y and x < z but not x == z or x == y.
- */
-void setupBattery() {
-  if ((BATTERY_TEMP_VALUE > BATTERY_HIGH_TEMP || vin > BATTERY_HIGH_VOLTS) ||
-   (BATTERY_TEMP_VALUE < BATTERY_LOW_TEMP || vin < BATTERY_LOW_VOLTS)) {
-    MAIN_BATTERY_CUTOFF_PIN_VALUE = LOW;
-  } else {// should be 34 and 158 and 11 and 15
-    MAIN_BATTERY_CUTOFF_PIN_VALUE = HIGH;
-  }
-}
-
-/*
- * @kazetsukaimiko: Previously there was a bug in this logic.
- * You handled the greater than and less than cases, but what about equals?
- * Probably existed in other checks as well.
- * Never do:
- if (x > y) {
- } else if (x < y) {
- }
-
- * Always handle the equivalence by doing either:
-  if (x >= y) {
-  } else if (x < y) {
-  }
- * Or:
-  if (x > y) {
-  } else if (x <= y) {
-  }
- * Or if possible, use just else with no condition, then equals is handled by exclusion.
-  if (x > y) {
-  } else {
-  }
- */
-void setupHeater() {
-  if (HEATER_TEMP_VALUE >= HEATER_MAX_TEMP) {
-    BATTERY_HEATING_PAD_PIN_VALUE = HIGH;
-  } else {
-    BATTERY_HEATING_PAD_PIN_VALUE = LOW;
-  }
-}
-
-void setupUnused() {
-  TBD_PIN_VALUE = HIGH;
-  Serial.println("Relay 4 unused");
-}
 
 void writePins() {
-  digitalWrite(MAIN_BATTERY_CUTOFF_PIN, MAIN_BATTERY_CUTOFF_PIN_VALUE);
-  digitalWrite(CABIN_COOLING_FAN_PIN, CABIN_COOLING_FAN_PIN_VALUE);
-  digitalWrite(BATTERY_HEATING_PAD_PIN, BATTERY_HEATING_PAD_PIN_VALUE);
-  digitalWrite(TBD_PIN, TBD_PIN_VALUE);
+  digitalWrite(MAIN_BATTERY_CUTOFF_PIN, batteryShouldBeCutOff() ? LOW : HIGH);
+  digitalWrite(CABIN_COOLING_FAN_PIN, cabinIsTooHot() ? LOW : HIGH);
+  digitalWrite(BATTERY_HEATING_PAD_PIN, heaterAtDesiredTemperature() ? HIGH : LOW);
+  digitalWrite(TBD_PIN, HIGH);
 }
 
 /*
