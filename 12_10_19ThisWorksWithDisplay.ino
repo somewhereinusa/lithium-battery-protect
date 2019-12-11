@@ -147,26 +147,17 @@ void getTemperatures() {
 }
 
 void getVoltages() {
-  /*
-        +++++++++++++++++++++++++++++++++++++++++++++++++++++
-        +                    NOTE                           +
-        +     Temp and voltage values used are for testing  +
-        +      final values are commented.                  +
-        +++++++++++++++++++++++++++++++++++++++++++++++++++++
-    */
-    //============================================================Volt sense 1
-    // read the value at analog input
     value = analogRead(analogInput1);
     vout = (value * 5.0) / 1024.0;
     vin = vout / (R2 / (R1 + R2));
 
-    //============================================================Volt sense 2
     value2 = analogRead(analogInput2);
     vout2 = (value2 * 5.0) / 1024.0;
     vin2 = vout2 / (R22 / (R12 + R22));
 }
 
 
+// @kazetsukaimiko: Possible to break this method into smaller ones!
 void sendMetricsToSerial() {
   Serial.print ("Battery temp ");
   Serial.print(BATTERY_TEMP_VALUE);
@@ -228,6 +219,7 @@ void sendMetricsToSerial() {
 
 }
 
+// @kazetsukaimiko: Possible to break this method into smaller ones!
 void sendMetricsToTFT() {
   tft.fillScreen(RA8875_BLACK);
 
@@ -334,22 +326,22 @@ void setupBattery() {
  }
 
  * Always handle the equivalence by doing either:
- if (x >= y) {
- } else if (x < y) {
- }
+  if (x >= y) {
+  } else if (x < y) {
+  }
  * Or:
- if (x = y) {
- } else if (x <= y) {
- }
- * Or if possible, this is better:
- if (x >= y) {
- } else {
- }
+  if (x > y) {
+  } else if (x <= y) {
+  }
+ * Or if possible, use just else with no condition, then equals is handled by exclusion.
+  if (x > y) {
+  } else {
+  }
  */
 void setupHeater() {
-  if (HEATER_TEMP_VALUE >= HEATER_MAX_TEMP) {//should be 40
+  if (HEATER_TEMP_VALUE >= HEATER_MAX_TEMP) {
     BATTERY_HEATING_PAD_PIN_VALUE = HIGH;
-  } else {  //should be  40
+  } else {
     BATTERY_HEATING_PAD_PIN_VALUE = LOW;
   }
 }
