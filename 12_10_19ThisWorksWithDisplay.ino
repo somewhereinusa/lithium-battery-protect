@@ -94,25 +94,10 @@ float R12 = 35000.0;
 float R22 = 7500.0;
 int value2 = 0;
 
-//=============================
-void setup() {
-  /*
-   * @kazetsukaimiko: Would up this value a little bit. If you rely on serial
-   * communication to give instructions or read values, Serial.setTimeout(50)
-   * can reduce the response delay.
-   */
-  Serial.begin(9600);
 
-  /*
-   * @kazetsukaimiko: Your code has sensors.begin(); twice. You may only have to
-   * do this once.
-   */
-  sensors.begin();
-
-  setupTFT();
-  sensors.begin();
-  setupPins();
-}
+/*
+ * SETUP
+ */
 
 void setupTFT() {
   if (!tft.begin(RA8875_480x272)) {
@@ -138,12 +123,35 @@ void setupPins() {
   pinMode(analogInput2, INPUT);
 }
 
+void setup() {
+  /*
+   * @kazetsukaimiko: Would up this value a little bit. If you rely on serial
+   * communication to give instructions or read values, Serial.setTimeout(50)
+   * can reduce the response delay.
+   */
+  Serial.begin(9600);
+
+  /*
+   * @kazetsukaimiko: Your code has sensors.begin(); twice. You may only have to
+   * do this once.
+   */
+  sensors.begin();
+
+  setupTFT();
+  sensors.begin();
+  setupPins();
+}
+
+/*
+ * RUNTIME
+ */
+
 void getTemperatures() {
   sensors.requestTemperatures();
   BATTERY_TEMP_VALUE = sensors.getTempFByIndex(BATTERY_TEMP_INDEX);
   CABIN_TEMP_VALUE = sensors.getTempFByIndex(CABIN_TEMP_INDEX);
   HEATER_TEMP_VALUE = sensors.getTempFByIndex(HEATER_TEMP_INDEX);
-  OTHER_TEMP_VALUE = sensors.getTempFByIndex(3);
+  OTHER_TEMP_VALUE = sensors.getTempFByIndex(OTHER_TEMP_INDEX);
 }
 
 void getVoltages() {
