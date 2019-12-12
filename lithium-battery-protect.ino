@@ -19,27 +19,27 @@ Program to turn relays on and off based on voltage and temperature
  */
 
 // Should be 15
-float BATTERY_HIGH_VOLTS = 2.3;
+static float BATTERY_HIGH_VOLTS = 2.3;
 // Should be 11
-float BATTERY_LOW_VOLTS = 1.0;
+static float BATTERY_LOW_VOLTS = 1.0;
 // Should be 158
-int BATTERY_HIGH_TEMP = 80;
+static int BATTERY_HIGH_TEMP = 80;
 // Should be 34
-int BATTERY_LOW_TEMP = 65;
+static int BATTERY_LOW_TEMP = 65;
 // Should be 34
-int HEATER_MAX_TEMP = 65;
+static int HEATER_MAX_TEMP = 65;
 // Should be 90
-int CABIN_HIGH_TEMP = 80;
+static int CABIN_HIGH_TEMP = 80;
 
-int MAIN_BATTERY_CUTOFF_PIN = 2;
-int CABIN_COOLING_FAN_PIN = 3;
-int BATTERY_HEATING_PAD_PIN = 4;
-int TBD_PIN = 5;
+static int MAIN_BATTERY_CUTOFF_PIN = 2;
+static int CABIN_COOLING_FAN_PIN = 3;
+static int BATTERY_HEATING_PAD_PIN = 4;
+static int TBD_PIN = 5;
 
-int BATTERY_TEMP_INDEX = 0;
-int CABIN_TEMP_INDEX = 1;
-int HEATER_TEMP_INDEX = 2;
-int OTHER_TEMP_INDEX = 3;
+static int BATTERY_TEMP_INDEX = 0;
+static int CABIN_TEMP_INDEX = 1;
+static int HEATER_TEMP_INDEX = 2;
+static int OTHER_TEMP_INDEX = 3;
 
 float BATTERY_TEMP_VALUE = 0.0;
 float CABIN_TEMP_VALUE = 0.0;
@@ -185,11 +185,19 @@ boolean heaterAtDesiredTemperature() {
 }
 
 
+String floatToString(float input) {
+   String valueString = "";
+   char buff[10];
+   dtostrf(input, 4, 6, buff);
+   valueString += buff;
+   return valueString;
+}
+
 void sendMetricsToSerial() {
-  Serial.println("Battery temp " + BATTERY_TEMP_VALUE + "F   ");
-  Serial.println("Cabin temp " + CABIN_TEMP_VALUE + "F   ");
-  Serial.println("Heater temp " + HEATER_TEMP_VALUE + "F   ");
-  Serial.println("Other temp " + OTHER_TEMP_VALUE + "F   ");
+  Serial.println("Battery temp " + floatToString(BATTERY_TEMP_VALUE) + "F   ");
+  Serial.println("Cabin temp " + floatToString(CABIN_TEMP_VALUE) + "F   ");
+  Serial.println("Heater temp " + floatToString(HEATER_TEMP_VALUE) + "F   ");
+  Serial.println("Other temp " + floatToString(OTHER_TEMP_VALUE) + "F   ");
 
   Serial.println(cabinIsTooHot() ? "Cabin temp High" : "Cabin temp OK");
 
@@ -204,8 +212,8 @@ void sendMetricsToSerial() {
 
   Serial.println((digitalRead(TBD_PIN) == HIGH) ? "Relay 4 OFF (unused)" : "Relay 4 ON (unused)");
 
-  Serial.println("Battery Volts1 " + vin);
-  Serial.println("Battery Volts2 " + vin2);
+  Serial.println("Battery Volts1 " + floatToString(vin));
+  Serial.println("Battery Volts2 " + floatToString(vin2));
 }
 
 void sendMetricsToTFT() {
@@ -215,13 +223,13 @@ void sendMetricsToTFT() {
   tft.textTransparent(RA8875_WHITE);
   tft.textSetCursor(10, 0);
   tft.textEnlarge(1);
-  tft.print ("Battery Volts " + vin);
+  tft.print ("Battery Volts " + floatToString(vin));
   tft.textSetCursor(10, 30);
-  tft.print ("Battery Temp  " + BATTERY_TEMP_VALUE);
+  tft.print ("Battery Temp  " + floatToString(BATTERY_TEMP_VALUE));
   tft.textSetCursor(10, 60);
-  tft.print ("Room Temp     " + CABIN_TEMP_VALUE);
+  tft.print ("Room Temp     " + floatToString(CABIN_TEMP_VALUE));
   tft.textSetCursor(10, 90);
-  tft.print ("Heater        " + HEATER_TEMP_VALUE);
+  tft.print ("Heater        " + floatToString(HEATER_TEMP_VALUE));
 
   //==============================================================TFT battery temperature
   tft.textSetCursor(350, 30);
@@ -269,11 +277,6 @@ void loop() {
   getTemperatures();
   getVoltages();
 
-  // Setup the appliance relays
-  setupCabinCoolingFan();
-  setupBattery();
-  setupHeater();
-  setupUnused();
 
   // Print all metrics to the TFT and to Serial.
   printMetrics();
